@@ -2,6 +2,19 @@
 
 Display pdf in VSCode.
 
+## Fork changes
+
+### Stable reloads during incremental PDF writes
+
+When a PDF is rewritten in several chunks (for example, during a LaTeX build),
+this fork waits 300 ms after the last file-change event before reloading the
+viewer. This coalesces bursts of filesystem notifications into one reload and
+prevents the viewer from repeatedly reloading partially written PDFs.
+
+Download a `.vsix` from this fork's [Releases](https://github.com/Kitsunetic/vscode-pdfviewer/releases)
+and install it in VS Code with **Extensions: Install from VSIX...**. It keeps
+the original extension identifier so it replaces the marketplace version.
+
 ![screenshot](https://user-images.githubusercontent.com/3643499/84454816-98fcd600-ac96-11ea-822c-3ae1e1599a13.gif)
 
 ## Contribute

@@ -1,6 +1,7 @@
 import * as path from 'path';
 import * as vscode from 'vscode';
 import { Disposable } from './disposable';
+import { DebounceScheduler, ReloadDebouncer } from './reloadDebouncer';
 
 function escapeAttribute(value: string | vscode.Uri): string {
   return value.toString().replace(/"/g, '&quot;');
@@ -8,8 +9,19 @@ function escapeAttribute(value: string | vscode.Uri): string {
 
 type PreviewState = 'Disposed' | 'Visible' | 'Active';
 
+const reloadDebounceDelayMs = 300;
+const timeoutScheduler: DebounceScheduler<NodeJS.Timeout> = {
+  schedule(callback: () => void, delayMs: number): NodeJS.Timeout {
+    return setTimeout(callback, delayMs);
+  },
+  cancel(timer: NodeJS.Timeout): void {
+    clearTimeout(timer);
+  },
+};
+
 export class PdfPreview extends Disposable {
   private _previewState: PreviewState = 'Visible';
+  private readonly _reloadDebouncer: ReloadDebouncer<NodeJS.Timeout>;
 
   constructor(
     private readonly extensionRoot: vscode.Uri,
@@ -17,6 +29,13 @@ export class PdfPreview extends Disposable {
     private readonly webviewEditor: vscode.WebviewPanel
   ) {
     super();
+    this._reloadDebouncer = this._register(
+      new ReloadDebouncer(
+        () => this.reload(),
+        reloadDebounceDelayMs,
+        timeoutScheduler
+      )
+    );
     const resourceRoot = resource.with({
       path: resource.path.replace(/\/[^/]+?\.\w+$/, '/'),
     });
@@ -60,7 +79,7 @@ export class PdfPreview extends Disposable {
     this._register(
       watcher.onDidChange((e) => {
         if (e.toString() === this.resource.toString()) {
-          this.reload();
+          this._reloadDebouncer.request();
         }
       })
     );
